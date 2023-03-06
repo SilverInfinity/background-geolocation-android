@@ -28,6 +28,8 @@ import com.marianhello.bgloc.provider.AbstractLocationProvider;
 import com.marianhello.utils.ToneGenerator.Tone;
 
 import java.util.List;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 import static java.lang.Math.abs;
 import static java.lang.Math.pow;
@@ -47,6 +49,7 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
     private static final long STATIONARY_TIMEOUT                                = 5 * 1000 * 60;    // 5 minutes.
     private static final long STATIONARY_LOCATION_POLLING_INTERVAL_LAZY         = 3 * 1000 * 60;    // 3 minutes.
     private static final long STATIONARY_LOCATION_POLLING_INTERVAL_AGGRESSIVE   = 1 * 1000 * 60;    // 1 minute.
+    private static final long STATIONARY_UPDATE_INTERVAL                        = 15; // 15 minutes.
     private static final int MAX_STATIONARY_ACQUISITION_ATTEMPTS = 5;
     private static final int MAX_SPEED_ACQUISITION_ATTEMPTS = 3;
 
@@ -54,6 +57,7 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
     private Boolean isAcquiringStationaryLocation = false;
     private Boolean isAcquiringSpeed = false;
     private Integer locationAcquisitionAttempts = 0;
+    private Instant lastStationaryUpdate = null;
 
     private Location lastLocation;
     private Location stationaryLocation;
@@ -152,6 +156,18 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
             onStop();
             onStart();
         }
+    }
+
+    @Override
+    protected void handleStationary (Location location, float radius) {
+        super.handleStationary(location, radius);
+        lastStationaryUpdate = Instant.now();
+    }
+
+    @Override
+    protected void handleStationary (Location location) {
+        super.handleStationary(location);
+        lastStationaryUpdate = Instant.now();
     }
 
     @Override
@@ -291,6 +307,7 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
         showDebugToast( "mv:" + isMoving + ",acy:" + location.getAccuracy() + ",v:" + location.getSpeed() + ",df:" + scaledDistanceFilter);
 
         if (isAcquiringStationaryLocation) {
+            // if no stationary location, or if stationary location is less accurate:
             if (stationaryLocation == null || stationaryLocation.getAccuracy() > location.getAccuracy()) {
                 stationaryLocation = location;
             }
@@ -433,10 +450,26 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
         logger.info("Distance from stationary location: {}", distance);
         if (distance > stationaryRadius) {
             onExitStationaryRegion(location);
-        } else if (distance > 0) {
-            startPollingStationaryLocation(STATIONARY_LOCATION_POLLING_INTERVAL_AGGRESSIVE);
-        } else if (stationaryLocationPollingInterval != STATIONARY_LOCATION_POLLING_INTERVAL_LAZY) {
-            startPollingStationaryLocation(STATIONARY_LOCATION_POLLING_INTERVAL_LAZY);
+        } else {
+            // lastStationaryUpdate should not be null, but if it is go ahead and assign it one.
+            if (lastStationaryUpdate == null) lastStationaryUpdate = Instant.now();
+            Instant now = Instant.now();
+            long timeSpentStationary = ChronoUnit.MINUTES.between(lastStationaryUpdate, now);
+            logger.debug("Stationary location Update Check: " + location.toString() + " | Mins Stationary: " + timeSpentStationary);
+            if (timeSpentStationary >= STATIONARY_UPDATE_INTERVAL) {
+                logger.debug("Stationary location Updating!" + location.toString() + " | Mins Stationary: " + timeSpentStationary);
+                handleStationary(location);
+            }
+            // distance is abs so it will always be > 0 except for the small change of being == 0. I am not sure what the reason for this check is.
+            // 0 <= distance < stationaryRadius
+            // todo:
+            // should i compare this to the stationaryRadius ? 
+            // if distance is < 1/2 * stationaryRadius go agressive else go lazy?
+            if (distance > 0) {
+                startPollingStationaryLocation(STATIONARY_LOCATION_POLLING_INTERVAL_AGGRESSIVE);
+            } else if (stationaryLocationPollingInterval != STATIONARY_LOCATION_POLLING_INTERVAL_LAZY) {
+                startPollingStationaryLocation(STATIONARY_LOCATION_POLLING_INTERVAL_LAZY);
+            }
         }
     }
 
