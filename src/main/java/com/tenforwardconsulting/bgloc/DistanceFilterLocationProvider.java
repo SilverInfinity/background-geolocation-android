@@ -49,7 +49,6 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
     private static final long STATIONARY_TIMEOUT                                = 5 * 1000 * 60;    // 5 minutes.
     private static final long STATIONARY_LOCATION_POLLING_INTERVAL_LAZY         = 3 * 1000 * 60;    // 3 minutes.
     private static final long STATIONARY_LOCATION_POLLING_INTERVAL_AGGRESSIVE   = 1 * 1000 * 60;    // 1 minute.
-    private static final long STATIONARY_UPDATE_INTERVAL                        = 15; // 15 minutes.
     private static final int MAX_STATIONARY_ACQUISITION_ATTEMPTS = 5;
     private static final int MAX_SPEED_ACQUISITION_ATTEMPTS = 3;
 
@@ -456,7 +455,7 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
             Instant now = Instant.now();
             long timeSpentStationary = ChronoUnit.MINUTES.between(lastStationaryUpdate, now);
             logger.debug("Stationary location Update Check: " + location.toString() + " | Mins Stationary: " + timeSpentStationary);
-            if (timeSpentStationary >= STATIONARY_UPDATE_INTERVAL) {
+            if (timeSpentStationary >= mConfig.getStationaryUpdateInterval()) {
                 logger.debug("Stationary location Updating!" + location.toString() + " | Mins Stationary: " + timeSpentStationary);
                 handleStationary(location);
             }

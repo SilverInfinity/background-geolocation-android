@@ -52,6 +52,7 @@ public class Config implements Parcelable
     private Integer interval; //milliseconds
     private Integer fastestInterval; //milliseconds
     private Integer activitiesInterval; //milliseconds
+    private Integer stationaryUpdateInterval; // minutes
     private Boolean stopOnTerminate;
     private Boolean startOnBoot;
     private Boolean startForeground;
@@ -82,6 +83,7 @@ public class Config implements Parcelable
         this.interval = config.interval;
         this.fastestInterval = config.fastestInterval;
         this.activitiesInterval = config.activitiesInterval;
+        this.stationaryUpdateInterval = config.stationaryUpdateInterval;
         this.stopOnTerminate = config.stopOnTerminate;
         this.startOnBoot = config.startOnBoot;
         this.startForeground = config.startForeground;
@@ -115,6 +117,7 @@ public class Config implements Parcelable
         setInterval(in.readInt());
         setFastestInterval(in.readInt());
         setActivitiesInterval(in.readInt());
+        setStationaryUpdateInterval(in.readInt());
         setStopOnStillActivity((Boolean) in.readValue(null));
         setUrl(in.readString());
         setSyncUrl(in.readString());
@@ -140,6 +143,7 @@ public class Config implements Parcelable
         config.interval = 600000; //milliseconds
         config.fastestInterval = 120000; //milliseconds
         config.activitiesInterval = 10000; //milliseconds
+        config.stationaryUpdateInterval = 15; // minutes
         config.stopOnTerminate = true;
         config.startOnBoot = false;
         config.startForeground = true;
@@ -178,6 +182,7 @@ public class Config implements Parcelable
         out.writeInt(getInterval());
         out.writeInt(getFastestInterval());
         out.writeInt(getActivitiesInterval());
+        out.writeInt(getStationaryUpdateInterval());
         out.writeValue(getStopOnStillActivity());
         out.writeString(getUrl());
         out.writeString(getSyncUrl());
@@ -409,6 +414,18 @@ public class Config implements Parcelable
         this.activitiesInterval = activitiesInterval;
     }
 
+    public boolean hasStationaryUpdateInterval() {
+        return stationaryUpdateInterval != null;
+    }
+
+    public Integer getStationaryUpdateInterval() {
+        return stationaryUpdateInterval;
+    }
+
+    public void setStationaryUpdateInterval(Integer stationaryUpdateInterval) {
+        this.stationaryUpdateInterval = stationaryUpdateInterval;
+    }
+
     public boolean hasStopOnStillActivity() {
         return stopOnStillActivity != null;
     }
@@ -529,6 +546,7 @@ public class Config implements Parcelable
                 .append(" interval=").append(getInterval())
                 .append(" fastestInterval=").append(getFastestInterval())
                 .append(" activitiesInterval=").append(getActivitiesInterval())
+                .append(" stationaryUpdateInterval=").append(getStationaryUpdateInterval())
                 .append(" isDebugging=").append(isDebugging())
                 .append(" stopOnTerminate=" ).append(getStopOnTerminate())
                 .append(" stopOnStillActivity=").append(getStopOnStillActivity())
@@ -602,6 +620,9 @@ public class Config implements Parcelable
         }
         if (config2.hasActivitiesInterval()) {
             merger.setActivitiesInterval(config2.getActivitiesInterval());
+        }
+        if (config2.hasStationaryUpdateInterval()) {
+            merger.setStationaryUpdateInterval(config2.getStationaryUpdateInterval());
         }
         if (config2.hasNotificationIconColor()) {
             merger.setNotificationIconColor(config2.getNotificationIconColor());
