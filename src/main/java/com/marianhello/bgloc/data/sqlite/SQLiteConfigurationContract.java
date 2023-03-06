@@ -34,6 +34,7 @@ public final class SQLiteConfigurationContract {
         public static final String COLUMN_NAME_INTERVAL = "interval";
         public static final String COLUMN_NAME_FASTEST_INTERVAL = "fastest_interval";
         public static final String COLUMN_NAME_ACTIVITIES_INTERVAL = "activities_interval";
+        public static final String COLUMN_NAME_STATIONARY_UPDATE_INTERVAL = "stationary_update_interval";
         public static final String COLUMN_NAME_URL = "url";
         public static final String COLUMN_NAME_SYNC_URL = "sync_url";
         public static final String COLUMN_NAME_SYNC_THRESHOLD = "sync_threshold";
@@ -62,6 +63,7 @@ public final class SQLiteConfigurationContract {
                         ConfigurationEntry.COLUMN_NAME_INTERVAL + INTEGER_TYPE + COMMA_SEP +
                         ConfigurationEntry.COLUMN_NAME_FASTEST_INTERVAL + INTEGER_TYPE + COMMA_SEP +
                         ConfigurationEntry.COLUMN_NAME_ACTIVITIES_INTERVAL + INTEGER_TYPE + COMMA_SEP +
+                        ConfigurationEntry.COLUMN_NAME_STATIONARY_UPDATE_INTERVAL + INTEGER_TYPE + COMMA_SEP +
                         ConfigurationEntry.COLUMN_NAME_URL + TEXT_TYPE + COMMA_SEP +
                         ConfigurationEntry.COLUMN_NAME_SYNC_URL + TEXT_TYPE + COMMA_SEP +
                         ConfigurationEntry.COLUMN_NAME_SYNC_THRESHOLD + INTEGER_TYPE + COMMA_SEP +

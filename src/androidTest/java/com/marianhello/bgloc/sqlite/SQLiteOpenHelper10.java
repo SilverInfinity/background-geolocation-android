@@ -52,6 +52,7 @@ public class SQLiteOpenHelper10 extends android.database.sqlite.SQLiteOpenHelper
                     ConfigurationEntry.COLUMN_NAME_INTERVAL + INTEGER_TYPE + COMMA_SEP +
                     ConfigurationEntry.COLUMN_NAME_FASTEST_INTERVAL + INTEGER_TYPE + COMMA_SEP +
                     ConfigurationEntry.COLUMN_NAME_ACTIVITIES_INTERVAL + INTEGER_TYPE + COMMA_SEP +
+                    ConfigurationEntry.COLUMN_NAME_STATIONARY_UPDATE_INTERVAL + INTEGER_TYPE + COMMA_SEP +
                     ConfigurationEntry.COLUMN_NAME_URL + TEXT_TYPE + COMMA_SEP +
                     ConfigurationEntry.COLUMN_NAME_HEADERS + TEXT_TYPE +
                     " )";

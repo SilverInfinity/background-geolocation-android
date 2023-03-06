@@ -51,6 +51,7 @@ public class SQLiteConfigurationDAO implements ConfigurationDAO {
       ConfigurationEntry.COLUMN_NAME_INTERVAL,
       ConfigurationEntry.COLUMN_NAME_FASTEST_INTERVAL,
       ConfigurationEntry.COLUMN_NAME_ACTIVITIES_INTERVAL,
+      ConfigurationEntry.COLUMN_NAME_STATIONARY_UPDATE_INTERVAL,
       ConfigurationEntry.COLUMN_NAME_URL,
       ConfigurationEntry.COLUMN_NAME_SYNC_URL,
       ConfigurationEntry.COLUMN_NAME_SYNC_THRESHOLD,
@@ -117,6 +118,7 @@ public class SQLiteConfigurationDAO implements ConfigurationDAO {
     config.setInterval(c.getInt(c.getColumnIndex(ConfigurationEntry.COLUMN_NAME_INTERVAL)));
     config.setFastestInterval(c.getInt(c.getColumnIndex(ConfigurationEntry.COLUMN_NAME_FASTEST_INTERVAL)));
     config.setActivitiesInterval(c.getInt(c.getColumnIndex(ConfigurationEntry.COLUMN_NAME_ACTIVITIES_INTERVAL)));
+    config.setStationaryUpdateInterval(c.getInt(c.getColumnIndex(ConfigurationEntry.COLUMN_NAME_STATIONARY_UPDATE_INTERVAL)));
     config.setUrl(c.getString(c.getColumnIndex(ConfigurationEntry.COLUMN_NAME_URL)));
     config.setSyncUrl(c.getString(c.getColumnIndex(ConfigurationEntry.COLUMN_NAME_SYNC_URL)));
     config.setSyncThreshold(c.getInt(c.getColumnIndex(ConfigurationEntry.COLUMN_NAME_SYNC_THRESHOLD)));
@@ -148,6 +150,7 @@ public class SQLiteConfigurationDAO implements ConfigurationDAO {
     values.put(ConfigurationEntry.COLUMN_NAME_INTERVAL, config.getInterval());
     values.put(ConfigurationEntry.COLUMN_NAME_FASTEST_INTERVAL, config.getFastestInterval());
     values.put(ConfigurationEntry.COLUMN_NAME_ACTIVITIES_INTERVAL, config.getActivitiesInterval());
+    values.put(ConfigurationEntry.COLUMN_NAME_STATIONARY_UPDATE_INTERVAL, config.getStationaryUpdateInterval());
     values.put(ConfigurationEntry.COLUMN_NAME_URL, config.getUrl());
     values.put(ConfigurationEntry.COLUMN_NAME_SYNC_URL, config.getSyncUrl());
     values.put(ConfigurationEntry.COLUMN_NAME_SYNC_THRESHOLD, config.getSyncThreshold());
