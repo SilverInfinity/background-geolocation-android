@@ -21,7 +21,10 @@ import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.location.LocationRequest;
 import android.os.Bundle;
+import android.os.Build;
+import androidx.core.util.Consumer;
 
 import com.marianhello.bgloc.Config;
 import com.marianhello.bgloc.provider.AbstractLocationProvider;
@@ -51,6 +54,8 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
     private static final long STATIONARY_LOCATION_POLLING_INTERVAL_AGGRESSIVE   = 1 * 1000 * 60;    // 1 minute.
     private static final int MAX_STATIONARY_ACQUISITION_ATTEMPTS = 5;
     private static final int MAX_SPEED_ACQUISITION_ATTEMPTS = 3;
+
+    private Boolean buildVersionSPlus = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S;
 
     private Boolean isMoving = false;
     private Boolean isAcquiringStationaryLocation = false;
@@ -88,19 +93,19 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
         alarmManager = (AlarmManager) mContext.getSystemService(Context.ALARM_SERVICE);
 
         // Stop-detection PI
-        stationaryAlarmPI = PendingIntent.getBroadcast(mContext, 0, new Intent(STATIONARY_ALARM_ACTION), 0);
+        stationaryAlarmPI = PendingIntent.getBroadcast(mContext, 0, new Intent(STATIONARY_ALARM_ACTION), buildVersionSPlus ? PendingIntent.FLAG_IMMUTABLE : 0);
         registerReceiver(stationaryAlarmReceiver, new IntentFilter(STATIONARY_ALARM_ACTION));
 
         // Stationary region PI
-        stationaryRegionPI = PendingIntent.getBroadcast(mContext, 0, new Intent(STATIONARY_REGION_ACTION), PendingIntent.FLAG_CANCEL_CURRENT);
+        stationaryRegionPI = PendingIntent.getBroadcast(mContext, 0, new Intent(STATIONARY_REGION_ACTION), buildVersionSPlus ? PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_MUTABLE : PendingIntent.FLAG_CANCEL_CURRENT);
         registerReceiver(stationaryRegionReceiver, new IntentFilter(STATIONARY_REGION_ACTION));
 
         // Stationary location monitor PI
-        stationaryLocationPollingPI = PendingIntent.getBroadcast(mContext, 0, new Intent(STATIONARY_LOCATION_MONITOR_ACTION), 0);
+        stationaryLocationPollingPI = PendingIntent.getBroadcast(mContext, 0, new Intent(STATIONARY_LOCATION_MONITOR_ACTION), buildVersionSPlus ? PendingIntent.FLAG_MUTABLE : 0);
         registerReceiver(stationaryLocationMonitorReceiver, new IntentFilter(STATIONARY_LOCATION_MONITOR_ACTION));
 
         // One-shot PI (TODO currently unused)
-        singleUpdatePI = PendingIntent.getBroadcast(mContext, 0, new Intent(SINGLE_LOCATION_UPDATE_ACTION), PendingIntent.FLAG_CANCEL_CURRENT);
+        singleUpdatePI = PendingIntent.getBroadcast(mContext, 0, new Intent(SINGLE_LOCATION_UPDATE_ACTION), buildVersionSPlus ? PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_MUTABLE : PendingIntent.FLAG_CANCEL_CURRENT);
         registerReceiver(singleUpdateReceiver, new IntentFilter(SINGLE_LOCATION_UPDATE_ACTION));
 
         // Location criteria
@@ -212,12 +217,32 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
                 // Turn on each provider aggressively for a short period of time
                 List<String> matchingProviders = locationManager.getAllProviders();
                 for (String provider: matchingProviders) {
-                    if (provider != LocationManager.PASSIVE_PROVIDER) {
-                        locationManager.requestLocationUpdates(provider, 0, 0, this);
+                    if (!provider.equals(LocationManager.PASSIVE_PROVIDER)) {
+                        if (buildVersionSPlus) {
+                            LocationRequest locationRequest = new LocationRequest.Builder(0)
+                                .setMinUpdateDistanceMeters(0)
+                                .setMinUpdateIntervalMillis(mConfig.getFastestInterval())
+                                .setQuality(LocationRequest.QUALITY_HIGH_ACCURACY)
+                                .build();
+                                locationManager.requestLocationUpdates(provider, locationRequest, mContext.getMainExecutor(), this);
+                        } else {
+                            locationManager.requestLocationUpdates(provider, 0, 0, this);
+                        }
                     }
                 }
             } else {
-                locationManager.requestLocationUpdates(locationManager.getBestProvider(criteria, true), mConfig.getInterval(), scaledDistanceFilter, this);
+                if (buildVersionSPlus) {
+                    String provider = locationManager.getBestProvider(criteria, true); // ?
+                    LocationRequest locationRequest = new LocationRequest.Builder(mConfig.getInterval())
+                        .setMinUpdateDistanceMeters(scaledDistanceFilter)
+                        .setIntervalMillis(mConfig.getInterval())
+                        .setMinUpdateIntervalMillis(mConfig.getFastestInterval())
+                        .setQuality(LocationRequest.QUALITY_BALANCED_POWER_ACCURACY)
+                        .build();
+                    locationManager.requestLocationUpdates(provider, locationRequest, mContext.getMainExecutor(), this);
+                } else {
+                    locationManager.requestLocationUpdates(locationManager.getBestProvider(criteria, true), mConfig.getInterval(), scaledDistanceFilter, this);
+                }
             }
         } catch (SecurityException e) {
             logger.error("Security exception: {}", e.getMessage());
@@ -516,6 +541,20 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
             criteria.setPowerRequirement(Criteria.POWER_HIGH);
 
             try {
+                // if (buildVersionSPlus) {
+                //     locationManager.getCurrentLocation(provider, null, mContext.getMainExecutor(), new Consumer<Location>() {
+                //         @Override
+                //         public void accept(Location location) {
+                            
+                //         }
+                //         });
+                // } else {
+                //     /*
+                //     This method was deprecated in API level 30. T^T
+                //     Use getCurrentLocation(java.lang.String, android.os.CancellationSignal, java.util.concurrent.Executor, java.util.function.Consumer) instead as it does not carry a risk of extreme battery drain.
+                //     */
+                //     locationManager.requestSingleUpdate(criteria, singleUpdatePI);
+                // }
                 locationManager.requestSingleUpdate(criteria, singleUpdatePI);
             } catch (SecurityException e) {
                 logger.error("Security exception: {}", e.getMessage());
