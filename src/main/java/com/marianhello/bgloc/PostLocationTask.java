@@ -5,12 +5,15 @@ import com.marianhello.bgloc.data.LocationDAO;
 import com.marianhello.logging.LoggerManager;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 import org.json.JSONException;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.HashMap;
+import java.util.UUID;
 
 /**
  * Location task to post/sync locations from location providers
@@ -138,21 +141,26 @@ public class PostLocationTask {
 
     private boolean postLocation(BackgroundLocation location) {
         logger.debug("Executing PostLocationTask#postLocation");
-        JSONArray jsonLocations = new JSONArray();
-
+        JSONObject jsonLocation;
         try {
+            JSONArray jsonLocations = new JSONArray();
             jsonLocations.put(mConfig.getTemplate().locationToJson(location));
+            jsonLocation = jsonLocations.getJSONObject(0);
         } catch (JSONException e) {
             logger.warn("Location to json failed: {}", location.toString());
             return false;
         }
 
         String url = mConfig.getUrl();
-        logger.debug("Posting json to url: {} headers: {}", url, mConfig.getHttpHeaders());
         int responseCode;
 
         try {
-            responseCode = HttpPostService.postJSON(url, jsonLocations, mConfig.getHttpHeaders());
+            HashMap<String, String> httpHeaders = new HashMap<String, String>();
+            httpHeaders.putAll(mConfig.getHttpHeaders());
+            String correlationId = "M3-" + UUID.randomUUID().toString();
+            httpHeaders.put("correlationID", correlationId);
+            logger.debug("Posting json to url: {} headers: {}", url, httpHeaders);
+            responseCode = HttpPostService.postJSON(url, jsonLocation, httpHeaders);
         } catch (Exception e) {
             mHasConnectivity = mConnectivityListener.hasConnectivity();
             logger.warn("Error while posting locations: {}", e.getMessage());
