@@ -224,7 +224,7 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
                                 .setMinUpdateIntervalMillis(mConfig.getFastestInterval())
                                 .setQuality(LocationRequest.QUALITY_HIGH_ACCURACY)
                                 .build();
-                                locationManager.requestLocationUpdates(provider, locationRequest, mContext.getMainExecutor(), this);
+                            locationManager.requestLocationUpdates(provider, locationRequest, mContext.getMainExecutor(), this);
                         } else {
                             locationManager.requestLocationUpdates(provider, 0, 0, this);
                         }
@@ -535,27 +535,22 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
         {
             logger.info("Stationary location monitor fired");
             playDebugTone(Tone.DIALTONE);
-
-            criteria.setAccuracy(Criteria.ACCURACY_FINE);
-            criteria.setHorizontalAccuracy(Criteria.ACCURACY_HIGH);
-            criteria.setPowerRequirement(Criteria.POWER_HIGH);
-
             try {
-                // if (buildVersionSPlus) {
-                //     locationManager.getCurrentLocation(provider, null, mContext.getMainExecutor(), new Consumer<Location>() {
-                //         @Override
-                //         public void accept(Location location) {
-                            
-                //         }
-                //         });
-                // } else {
-                //     /*
-                //     This method was deprecated in API level 30. T^T
-                //     Use getCurrentLocation(java.lang.String, android.os.CancellationSignal, java.util.concurrent.Executor, java.util.function.Consumer) instead as it does not carry a risk of extreme battery drain.
-                //     */
-                //     locationManager.requestSingleUpdate(criteria, singleUpdatePI);
-                // }
-                locationManager.requestSingleUpdate(criteria, singleUpdatePI);
+                if (buildVersionSPlus) {
+                    String provider = locationManager.getBestProvider(criteria, true); // ?
+                    LocationRequest locationRequest = new LocationRequest.Builder(0)
+                        .setMinUpdateDistanceMeters(0)
+                        .setMinUpdateIntervalMillis(0)
+                        .setQuality(LocationRequest.QUALITY_HIGH_ACCURACY)
+                        .setMaxUpdates(1)
+                        .build();
+                    locationManager.requestLocationUpdates(provider, locationRequest, singleUpdatePI);
+                } else {
+                    criteria.setAccuracy(Criteria.ACCURACY_FINE);
+                    criteria.setHorizontalAccuracy(Criteria.ACCURACY_HIGH);
+                    criteria.setPowerRequirement(Criteria.POWER_HIGH);
+                    locationManager.requestSingleUpdate(criteria, singleUpdatePI);
+                }
             } catch (SecurityException e) {
                 logger.error("Security exception: {}", e.getMessage());
             }
