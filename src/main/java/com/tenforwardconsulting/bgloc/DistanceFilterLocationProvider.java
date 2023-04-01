@@ -155,8 +155,18 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
 
     @Override
     public void onConfigure(Config config) {
+        Config previousConfig = mConfig;
         super.onConfigure(config);
-        if (isStarted) {
+        boolean needsRestart = previousConfig == null || 
+            config == null || 
+            previousConfig.getDesiredAccuracy() != config.getDesiredAccuracy() ||
+            !previousConfig.getFastestInterval().equals(config.getFastestInterval()) ||
+            !previousConfig.getInterval().equals(config.getInterval()) ||
+            !previousConfig.getStationaryRadius().equals(config.getStationaryRadius()) ||
+            previousConfig.getDistanceFilter() != config.getDistanceFilter() ||
+            previousConfig.getStationaryUpdateInterval() != config.getStationaryUpdateInterval() ||
+            previousConfig.isDebugging() != config.isDebugging();
+        if (isStarted && needsRestart) {
             onStop();
             onStart();
         }
