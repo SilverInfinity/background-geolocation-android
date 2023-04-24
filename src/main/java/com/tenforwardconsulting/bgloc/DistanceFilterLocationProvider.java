@@ -17,14 +17,17 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.location.Criteria;
 import android.location.Location;
-import android.location.LocationListener;
 import android.location.LocationManager;
-import android.location.LocationRequest;
 import android.os.Bundle;
 import android.os.Build;
 import androidx.core.util.Consumer;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.Granularity;
+import com.google.android.gms.location.Priority;
 
 import com.marianhello.bgloc.Config;
 import com.marianhello.bgloc.provider.AbstractLocationProvider;
@@ -49,10 +52,10 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
     private static final String SINGLE_LOCATION_UPDATE_ACTION   = P_NAME + ".SINGLE_LOCATION_UPDATE_ACTION";
     private static final String STATIONARY_LOCATION_MONITOR_ACTION = P_NAME + ".STATIONARY_LOCATION_MONITOR_ACTION";
 
-    private static final long STATIONARY_TIMEOUT                                = 5 * 1000 * 60;    // 5 minutes.
-    private static final long STATIONARY_LOCATION_POLLING_INTERVAL_LAZY         = 3 * 1000 * 60;    // 3 minutes.
-    private static final long STATIONARY_LOCATION_POLLING_INTERVAL_AGGRESSIVE   = 1 * 1000 * 60;    // 1 minute.
-    private static final int MAX_STATIONARY_ACQUISITION_ATTEMPTS = 5;
+    private static final long STATIONARY_TIMEOUT                                = 10 * 1000 * 60;    // 10 minutes.
+    private static final long STATIONARY_LOCATION_POLLING_INTERVAL_LAZY         = 5 * 1000 * 60;    // 5 minutes.
+    private static final long STATIONARY_LOCATION_POLLING_INTERVAL_AGGRESSIVE   = 5 * 1000 * 60;    // 5 minutes.
+    private static final int MAX_STATIONARY_ACQUISITION_ATTEMPTS = 1;
     private static final int MAX_SPEED_ACQUISITION_ATTEMPTS = 3;
 
     private Boolean buildVersionSPlus = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S;
@@ -73,7 +76,7 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
     private PendingIntent singleUpdatePI;
     private Integer scaledDistanceFilter;
 
-    private Criteria criteria;
+    private FusedLocationProviderClient mFusedLocationClient;
 
     private LocationManager locationManager;
     private AlarmManager alarmManager;
@@ -108,12 +111,7 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
         singleUpdatePI = PendingIntent.getBroadcast(mContext, 0, new Intent(SINGLE_LOCATION_UPDATE_ACTION), buildVersionSPlus ? PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_MUTABLE : PendingIntent.FLAG_CANCEL_CURRENT);
         registerReceiver(singleUpdateReceiver, new IntentFilter(SINGLE_LOCATION_UPDATE_ACTION));
 
-        // Location criteria
-        criteria = new Criteria();
-        criteria.setAltitudeRequired(false);
-        criteria.setBearingRequired(false);
-        criteria.setSpeedRequired(true);
-        criteria.setCostAllowed(true);
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(mContext);
     }
 
     @Override
@@ -135,7 +133,7 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
         }
 
         try {
-            locationManager.removeUpdates(this);
+            mFusedLocationClient.removeLocationUpdates((LocationListener) this);
             locationManager.removeProximityAlert(stationaryRegionPI);
         } catch (SecurityException e) {
             //noop
@@ -207,11 +205,7 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
         stationaryLocation  = null;
 
         try {
-            locationManager.removeUpdates(this);
-            criteria.setAccuracy(Criteria.ACCURACY_FINE);
-            criteria.setHorizontalAccuracy(translateDesiredAccuracy(mConfig.getDesiredAccuracy()));
-            criteria.setPowerRequirement(Criteria.POWER_HIGH);
-
+            mFusedLocationClient.removeLocationUpdates((LocationListener) this);
             if (isMoving) {
                 // setPace can be called while moving, after distanceFilter has been recalculated.  We don't want to re-acquire velocity in this case.
                 if (!wasMoving) {
@@ -224,62 +218,27 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
             // Temporarily turn on super-aggressive geolocation on all providers when acquiring velocity or stationary location.
             if (isAcquiringSpeed || isAcquiringStationaryLocation) {
                 locationAcquisitionAttempts = 0;
-                // Turn on each provider aggressively for a short period of time
-                List<String> matchingProviders = locationManager.getAllProviders();
-                for (String provider: matchingProviders) {
-                    if (!provider.equals(LocationManager.PASSIVE_PROVIDER)) {
-                        if (buildVersionSPlus) {
-                            LocationRequest locationRequest = new LocationRequest.Builder(0)
-                                .setMinUpdateDistanceMeters(0)
-                                .setMinUpdateIntervalMillis(mConfig.getFastestInterval())
-                                .setQuality(LocationRequest.QUALITY_HIGH_ACCURACY)
-                                .build();
-                            locationManager.requestLocationUpdates(provider, locationRequest, mContext.getMainExecutor(), this);
-                        } else {
-                            locationManager.requestLocationUpdates(provider, 0, 0, this);
-                        }
-                    }
-                }
+                LocationRequest locationRequest = new LocationRequest.Builder(0)
+                    .setMinUpdateDistanceMeters(0)
+                    .setMinUpdateIntervalMillis(0)
+                    .setGranularity(Granularity.GRANULARITY_FINE)
+                    .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
+                    .build();
+                mFusedLocationClient.requestLocationUpdates(locationRequest, mContext.getMainExecutor(), this);
             } else {
-                if (buildVersionSPlus) {
-                    String provider = locationManager.getBestProvider(criteria, true); // ?
-                    LocationRequest locationRequest = new LocationRequest.Builder(mConfig.getInterval())
-                        .setMinUpdateDistanceMeters(scaledDistanceFilter)
-                        .setIntervalMillis(mConfig.getInterval())
-                        .setMinUpdateIntervalMillis(mConfig.getFastestInterval())
-                        .setQuality(LocationRequest.QUALITY_BALANCED_POWER_ACCURACY)
-                        .build();
-                    locationManager.requestLocationUpdates(provider, locationRequest, mContext.getMainExecutor(), this);
-                } else {
-                    locationManager.requestLocationUpdates(locationManager.getBestProvider(criteria, true), mConfig.getInterval(), scaledDistanceFilter, this);
-                }
+                LocationRequest locationRequest = new LocationRequest.Builder(0)
+                    .setMinUpdateDistanceMeters(scaledDistanceFilter)
+                    .setIntervalMillis(mConfig.getInterval())
+                    .setMinUpdateIntervalMillis(mConfig.getFastestInterval())
+                    .setGranularity(Granularity.GRANULARITY_FINE)
+                    .setPriority(Priority.PRIORITY_BALANCED_POWER_ACCURACY)
+                    .build();
+                mFusedLocationClient.requestLocationUpdates(locationRequest, mContext.getMainExecutor(), this);
             }
         } catch (SecurityException e) {
             logger.error("Security exception: {}", e.getMessage());
             this.handleSecurityException(e);
         }
-    }
-
-    /**
-     * Translates a number representing desired accuracy of Geolocation system from set [0, 10, 100, 1000].
-     * 0:  most aggressive, most accurate, worst battery drain
-     * 1000:  least aggressive, least accurate, best for battery.
-     */
-    private Integer translateDesiredAccuracy(Integer accuracy) {
-        if (accuracy >= 1000) {
-            return Criteria.ACCURACY_LOW;
-        }
-        if (accuracy >= 100) {
-            return Criteria.ACCURACY_MEDIUM;
-        }
-        if (accuracy >= 10) {
-            return Criteria.ACCURACY_HIGH;
-        }
-        if (accuracy >= 0) {
-            return Criteria.ACCURACY_HIGH;
-        }
-
-        return Criteria.ACCURACY_MEDIUM;
     }
 
     /**
@@ -407,7 +366,7 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
 
     private void startMonitoringStationaryRegion(Location location) {
         try {
-            locationManager.removeUpdates(this);
+            mFusedLocationClient.removeLocationUpdates((LocationListener) this);
 
             float stationaryRadius = mConfig.getStationaryRadius();
             float proximityRadius = (location.getAccuracy() < stationaryRadius) ? stationaryRadius : location.getAccuracy();
@@ -516,6 +475,7 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
             String key = LocationManager.KEY_LOCATION_CHANGED;
             Location location = (Location)intent.getExtras().get(key);
             if (location != null) {
+                mFusedLocationClient.removeLocationUpdates(singleUpdatePI);
                 logger.debug("Single location update: " + location.toString());
                 onPollStationaryLocation(location);
             }
@@ -546,21 +506,13 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
             logger.info("Stationary location monitor fired");
             playDebugTone(Tone.DIALTONE);
             try {
-                if (buildVersionSPlus) {
-                    String provider = locationManager.getBestProvider(criteria, true); // ?
-                    LocationRequest locationRequest = new LocationRequest.Builder(0)
-                        .setMinUpdateDistanceMeters(0)
-                        .setMinUpdateIntervalMillis(0)
-                        .setQuality(LocationRequest.QUALITY_HIGH_ACCURACY)
-                        .setMaxUpdates(1)
-                        .build();
-                    locationManager.requestLocationUpdates(provider, locationRequest, singleUpdatePI);
-                } else {
-                    criteria.setAccuracy(Criteria.ACCURACY_FINE);
-                    criteria.setHorizontalAccuracy(Criteria.ACCURACY_HIGH);
-                    criteria.setPowerRequirement(Criteria.POWER_HIGH);
-                    locationManager.requestSingleUpdate(criteria, singleUpdatePI);
-                }
+                LocationRequest locationRequest = new LocationRequest.Builder(0)
+                    .setMinUpdateDistanceMeters(0)
+                    .setMinUpdateIntervalMillis(0)
+                    .setGranularity(Granularity.GRANULARITY_FINE)
+                    .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
+                    .build();
+                mFusedLocationClient.requestLocationUpdates(locationRequest, singleUpdatePI);
             } catch (SecurityException e) {
                 logger.error("Security exception: {}", e.getMessage());
             }

@@ -91,6 +91,6 @@ dependencies {
     projDependencies.each {
         add(it.configuration, it.dependency)
     }
-
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
     implementation fileTree(include: ['*.jar'], dir: 'libs')
 }
