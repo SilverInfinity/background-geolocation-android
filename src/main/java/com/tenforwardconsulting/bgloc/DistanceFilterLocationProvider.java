@@ -125,7 +125,7 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
         logger.info("Start recording");
         scaledDistanceFilter = mConfig.getDistanceFilter();
         isStarted = true;
-        setPace(false);
+        setPace(true);
     }
 
     @Override
@@ -157,8 +157,8 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
     public void onConfigure(Config config) {
         Config previousConfig = mConfig;
         super.onConfigure(config);
-        boolean needsRestart = previousConfig == null || 
-            config == null || 
+        boolean needsRestart = 
+            previousConfig == null || config == null || 
             previousConfig.getDesiredAccuracy() != config.getDesiredAccuracy() ||
             !previousConfig.getFastestInterval().equals(config.getFastestInterval()) ||
             !previousConfig.getInterval().equals(config.getInterval()) ||
