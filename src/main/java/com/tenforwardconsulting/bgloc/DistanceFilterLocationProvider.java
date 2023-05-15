@@ -22,6 +22,7 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Build;
 import androidx.core.util.Consumer;
+import androidx.core.content.ContextCompat;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationListener;
@@ -224,7 +225,7 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
                     .setGranularity(Granularity.GRANULARITY_FINE)
                     .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
                     .build();
-                mFusedLocationClient.requestLocationUpdates(locationRequest, mContext.getMainExecutor(), this);
+                mFusedLocationClient.requestLocationUpdates(locationRequest, ContextCompat.getMainExecutor(mContext), this);
             } else {
                 LocationRequest locationRequest = new LocationRequest.Builder(0)
                     .setMinUpdateDistanceMeters(scaledDistanceFilter)
@@ -233,7 +234,7 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
                     .setGranularity(Granularity.GRANULARITY_FINE)
                     .setPriority(Priority.PRIORITY_BALANCED_POWER_ACCURACY)
                     .build();
-                mFusedLocationClient.requestLocationUpdates(locationRequest, mContext.getMainExecutor(), this);
+                mFusedLocationClient.requestLocationUpdates(locationRequest, ContextCompat.getMainExecutor(mContext), this);
             }
         } catch (SecurityException e) {
             logger.error("Security exception: {}", e.getMessage());
