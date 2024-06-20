@@ -17,6 +17,7 @@ import android.location.Location;
 import android.media.AudioManager;
 import android.provider.Settings;
 import android.widget.Toast;
+import androidx.core.content.ContextCompat;
 
 import com.google.android.gms.location.DetectedActivity;
 import com.marianhello.bgloc.Config;
@@ -77,7 +78,7 @@ public abstract class AbstractLocationProvider implements LocationProvider {
      * @param receiver
      */
     protected Intent registerReceiver (BroadcastReceiver receiver, IntentFilter filter) {
-        return mContext.registerReceiver(receiver, filter);
+        return ContextCompat.registerReceiver(mContext, receiver, filter,  ContextCompat.RECEIVER_NOT_EXPORTED);
     }
 
     /**

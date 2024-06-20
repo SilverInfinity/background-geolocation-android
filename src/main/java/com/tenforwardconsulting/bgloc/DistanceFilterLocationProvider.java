@@ -101,15 +101,21 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
         registerReceiver(stationaryAlarmReceiver, new IntentFilter(STATIONARY_ALARM_ACTION));
 
         // Stationary region PI
-        stationaryRegionPI = PendingIntent.getBroadcast(mContext, 0, new Intent(STATIONARY_REGION_ACTION), buildVersionSPlus ? PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_MUTABLE : PendingIntent.FLAG_CANCEL_CURRENT);
+        Intent stationaryRegionIntent = new Intent(STATIONARY_REGION_ACTION);
+        stationaryRegionIntent.setPackage(mContext.getPackageName());
+        stationaryRegionPI = PendingIntent.getBroadcast(mContext, 0, stationaryRegionIntent, buildVersionSPlus ? PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_MUTABLE : PendingIntent.FLAG_CANCEL_CURRENT);
         registerReceiver(stationaryRegionReceiver, new IntentFilter(STATIONARY_REGION_ACTION));
 
         // Stationary location monitor PI
-        stationaryLocationPollingPI = PendingIntent.getBroadcast(mContext, 0, new Intent(STATIONARY_LOCATION_MONITOR_ACTION), buildVersionSPlus ? PendingIntent.FLAG_MUTABLE : 0);
+        Intent stationaryLocationPollingIntent = new Intent(STATIONARY_LOCATION_MONITOR_ACTION);
+        stationaryLocationPollingIntent.setPackage(mContext.getPackageName());
+        stationaryLocationPollingPI = PendingIntent.getBroadcast(mContext, 0, stationaryLocationPollingIntent, buildVersionSPlus ? PendingIntent.FLAG_MUTABLE : 0);
         registerReceiver(stationaryLocationMonitorReceiver, new IntentFilter(STATIONARY_LOCATION_MONITOR_ACTION));
 
         // One-shot PI (TODO currently unused)
-        singleUpdatePI = PendingIntent.getBroadcast(mContext, 0, new Intent(SINGLE_LOCATION_UPDATE_ACTION), buildVersionSPlus ? PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_MUTABLE : PendingIntent.FLAG_CANCEL_CURRENT);
+        Intent singleUpdateIntent = new Intent(SINGLE_LOCATION_UPDATE_ACTION);
+        singleUpdateIntent.setPackage(mContext.getPackageName());
+        singleUpdatePI = PendingIntent.getBroadcast(mContext, 0, singleUpdateIntent, buildVersionSPlus ? PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_MUTABLE : PendingIntent.FLAG_CANCEL_CURRENT);
         registerReceiver(singleUpdateReceiver, new IntentFilter(SINGLE_LOCATION_UPDATE_ACTION));
 
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(mContext);

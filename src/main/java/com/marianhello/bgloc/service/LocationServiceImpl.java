@@ -31,6 +31,7 @@ import android.os.Message;
 import android.os.Process;
 import androidx.annotation.Nullable;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import androidx.core.content.ContextCompat;
 
 import com.marianhello.bgloc.Config;
 import com.marianhello.bgloc.ConnectivityListener;
@@ -630,7 +631,7 @@ public class LocationServiceImpl extends Service implements ProviderDelegate, Lo
 
     @Override
     public Intent registerReceiver(BroadcastReceiver receiver, IntentFilter filter) {
-        return super.registerReceiver(receiver, filter, null, mServiceHandler);
+        return ContextCompat.registerReceiver(this, receiver, filter, null, mServiceHandler, ContextCompat.RECEIVER_NOT_EXPORTED);
     }
 
     @Override
