@@ -352,7 +352,7 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
     }
 
     public void resetStationaryAlarm() {
-        alarmManager.cancel(stationaryAlarmPI);
+        if (stationaryAlarmPI != null) { alarmManager.cancel(stationaryAlarmPI); }
         alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + STATIONARY_TIMEOUT, stationaryAlarmPI); // Millisec * Second * Minute
     }
 
@@ -405,7 +405,7 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
 
         try {
             // Cancel the periodic stationary location monitor alarm.
-            alarmManager.cancel(stationaryLocationPollingPI);
+            if (stationaryLocationPollingPI != null) { alarmManager.cancel(stationaryLocationPollingPI); }
             // Kill the current region-monitor we just walked out of.
             locationManager.removeProximityAlert(stationaryRegionPI);
             // Engage aggressive tracking.
@@ -420,7 +420,7 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
         // proximity-alerts don't seem to work while suspended in latest Android 4.42 (works in 4.03).  Have to use AlarmManager to sample
         //  location at regular intervals with a one-shot.
         stationaryLocationPollingInterval = interval;
-        alarmManager.cancel(stationaryLocationPollingPI);
+        if (stationaryLocationPollingPI != null) { alarmManager.cancel(stationaryLocationPollingPI); }
         long start = System.currentTimeMillis() + (60 * 1000);
         alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, start, interval, stationaryLocationPollingPI);
     }
@@ -566,8 +566,8 @@ public class DistanceFilterLocationProvider extends AbstractLocationProvider imp
         logger.info("Destroying DistanceFilterLocationProvider");
 
         this.onStop();
-        alarmManager.cancel(stationaryAlarmPI);
-        alarmManager.cancel(stationaryLocationPollingPI);
+        if (stationaryAlarmPI != null) { alarmManager.cancel(stationaryAlarmPI); }
+        if (stationaryLocationPollingPI != null) { alarmManager.cancel(stationaryLocationPollingPI); }
 
         unregisterReceiver(stationaryAlarmReceiver);
         unregisterReceiver(singleUpdateReceiver);
